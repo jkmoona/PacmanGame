@@ -41,27 +41,29 @@
     <div class="container">
       <h3>Score: <span id="score"></span></h3>
       <canvas id="pacmanCanvas"></canvas>
-      <div id="gameOverDiv">Game Over</div>
+      <div id="modal"></div>
     </div>
     <script>
       const canvas = document.getElementById("pacmanCanvas");
       const ctx = canvas.getContext("2d");
       const scoreBoard = document.getElementById("score");
-      const gameOverScreen = document.getElementById("gameOverDiv");
+      const gameOverScreen = document.getElementById("modal");
 
-      canvas.width = 285;
-      canvas.height = 285;
-      const gameSpeedDelay = 300;
+      canvas.width = 450;
+      canvas.height = 450;
       const cellSize = 40;
-      const dotSize = cellSize / 10;
-
+      const foodSize = cellSize / 10;
+      const specialSize = foodSize * 2;
+      
+      const gameSpeedDelay = 300;
+      let lives = 3;
       let score = 0;
       let foodCount = 0;
       const foodPts = 1;
       const specialPts = 10;
 
       // 1 - wall, 2 - food, 3 - special
-      const mainMap = [
+      const wallMap = [
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
         [1, 2, 1, 1, 1, 2, 1, 2, 1, 2, 1],
@@ -76,7 +78,7 @@
       ];
 
       // Small map for testing
-      const wallMap = [
+      const testMap = [
         [1, 1, 1, 1, 1, 1, 1],
         [1, 2, 2, 2, 2, 2, 1],
         [1, 2, 1, 1, 1, 2, 1],
@@ -100,11 +102,32 @@
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ];
 
-      let pacman = {
-        x: 1,
-        y: 1,
-        direction: "right",
+      class Pacman {
+        constructor(x,y,direction, lives){
+          this.x = x;
+          this.y = y;
+          this.direction = direction;
+          this.lives = lives;
+        }
+
+        // TODO - Clean up the code 
+        eat() {
+          switch(wallMap[pacman.y][pacman.x]){
+            case 2:
+              score += foodPts;
+              foodCount--;
+              wallMap[pacman.y][pacman.x] = 0;
+              break;
+            case 3:
+              score += specialPts;
+              foodCount--;
+              wallMap[pacman.y][pacman.x] = 0;
+              break;
+          }
+        }
       };
+
+      const pacman = new Pacman(1, 1, "right", lives);
 
       function drawPacman() {
         ctx.beginPath();
@@ -145,8 +168,10 @@
           for (let x = 0; x < wallMap[y].length; x++) {
             // Draw wall
             if (wallMap[y][x] === 1) {
-              ctx.fillStyle = "blue";
-              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+              ctx.strokeStyle = "blue";
+              ctx.lineJoin = "bevel";
+              ctx.lineWidth = 1.2;
+              ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
             }
             // Draw food
             else if (wallMap[y][x] === 2) {
@@ -154,8 +179,8 @@
               ctx.fillRect(
                 x * cellSize + cellSize / 2,
                 y * cellSize + cellSize / 2,
-                dotSize,
-                dotSize
+                foodSize,
+                foodSize
               );
             }
             // Draw special food
@@ -164,8 +189,8 @@
               ctx.fillRect(
                 x * cellSize + cellSize / 2,
                 y * cellSize + cellSize / 2,
-                dotSize * 2,
-                dotSize * 2
+                specialSize,
+                specialSize
               );
             }
           }
@@ -180,6 +205,8 @@
         clearCanvas();
         drawMap();
         drawPacman();
+        pacman.eat();
+        scoreBoard.innerText = score;
       }
 
       // TODO - Clean up the code
@@ -188,15 +215,6 @@
           case "up":
             if (pacman.y > 0 && wallMap[pacman.y - 1][pacman.x] != 1) {
               pacman.y--;
-              if (wallMap[pacman.y][pacman.x] == 2) {
-                score += foodPts;
-                foodCount--;
-              } else if (wallMap[pacman.y][pacman.x] == 3) {
-                score += specialPts;
-                foodCount--;
-              }
-              wallMap[pacman.y][pacman.x] = 0;
-              scoreBoard.innerText = score;
             }
             break;
           case "down":
@@ -205,29 +223,11 @@
               wallMap[pacman.y + 1][pacman.x] != 1
             ) {
               pacman.y++;
-              if (wallMap[pacman.y][pacman.x] == 2) {
-                score += foodPts;
-                foodCount--;
-              } else if (wallMap[pacman.y][pacman.x] == 3) {
-                score += specialPts;
-                foodCount--;
-              }
-              wallMap[pacman.y][pacman.x] = 0;
-              scoreBoard.innerText = score;
             }
             break;
           case "left":
             if (pacman.x > 0 && wallMap[pacman.y][pacman.x - 1] != 1) {
               pacman.x--;
-              if (wallMap[pacman.y][pacman.x] == 2) {
-                score += foodPts;
-                foodCount--;
-              } else if (wallMap[pacman.y][pacman.x] == 3) {
-                score += specialPts;
-                foodCount--;
-              }
-              wallMap[pacman.y][pacman.x] = 0;
-              scoreBoard.innerText = score;
             }
             break;
           case "right":
@@ -236,15 +236,6 @@
               wallMap[pacman.y][pacman.x + 1] != 1
             ) {
               pacman.x++;
-              if (wallMap[pacman.y][pacman.x] == 2) {
-                score += foodPts;
-                foodCount--;
-              } else if (wallMap[pacman.y][pacman.x] == 3) {
-                score += specialPts;
-                foodCount--;
-              }
-              wallMap[pacman.y][pacman.x] = 0;
-              scoreBoard.innerText = score;
             }
             break;
         }
@@ -277,18 +268,19 @@
         }
       }
 
-      function isGameOver() {
-        return foodCount <= 0;
-      }
-      let timeout;
-      function gameLoop() {
-        timeout = setTimeout(gameLoop, gameSpeedDelay); // Add a delay of 100 milliseconds between frames
-        movePacman();
-        update();
-        if (isGameOver()) {
-          clearTimeout(timeout);
+      function gameOverCheck(loop) {
+        if(foodCount <= 0){
+          clearTimeout(loop);
           gameOverScreen.style.display = "flex";
         }
+      }
+      
+      let timeout;
+      function gameLoop() {
+        timeout = setTimeout(gameLoop, gameSpeedDelay); // Add a delay between frames
+        movePacman();
+        update();
+        gameOverCheck(timeout);
       }
       calcFoodCount();
       gameLoop();
