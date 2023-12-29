@@ -1,14 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pacman Game</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <canvas id="canvas"></canvas>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pacman Game</title>
+    <style>
+      body {
+        display: grid;
+        justify-content: center;
+        align-items: center;
+        background-color: black;
+        color: white;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
+      }
 
-  <script src="script.js"></script>
-</body>
+      canvas {
+        /* border: 1px solid #fff; */
+        margin: 50% auto;
+        background-color: black;
+      }
+
+      /* h3 {
+
+      }
+
+      #score {
+
+      } */
+
+      #gameOverDiv {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.75);
+        font-size: 28px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Score: <span id="score"></span></h3>
+    <canvas id="pacmanCanvas" width="400" height="400"></canvas>
+    <div id="gameOverDiv">Game Over</div>
+    <script>
+      const canvas = document.getElementById("pacmanCanvas");
+      const ctx = canvas.getContext("2d");
+      const scoreBoard = document.getElementById("score");
+      const gameOverScreen = document.getElementById("gameOverDiv");
+
+      const gameSpeedDelay = 300;
+      const cellSize = 30;
+      const dotSize = cellSize / 10;
+
+      let score = 0;
+      let foodCount = 0;
+      const foodPts = 1;
+      const specialPts = 10;
+
+      // 1 - wall, 2 - food, 3 - special
+      const mainMap = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+        [1, 2, 1, 1, 1, 2, 1, 2, 1, 2, 1],
+        [1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 1],
+        [1, 2, 1, 2, 2, 2, 3, 2, 1, 2, 1],
+        [1, 2, 1, 1, 2, 1, 2, 1, 1, 2, 1],
+        [1, 2, 1, 2, 3, 2, 2, 2, 1, 2, 1],
+        [1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 1],
+        [1, 2, 1, 2, 1, 2, 1, 1, 1, 2, 1],
+        [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      ];
+
+      // Small map for testing
+      const wallMap = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 2, 2, 2, 2, 1],
+        [1, 2, 1, 1, 1, 2, 1],
+        [1, 2, 1, 3, 1, 2, 1],
+        [1, 2, 1, 2, 1, 2, 1],
+        [1, 2, 2, 2, 2, 2, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+      ];
+
+      const ghostMap = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ];
+
+      let pacman = {
+        x: 1,
+        y: 1,
+        direction: "right",
+      };
+
+      function drawPacman() {
+        ctx.beginPath();
+        const centerX = (pacman.x + 0.5) * cellSize;
+        const centerY = (pacman.y + 0.5) * cellSize;
+        const radius = cellSize / 2;
+
+        // Adjust the angles based on the direction
+        let startAngle, endAngle;
+        switch (pacman.direction) {
+          case "right":
+            startAngle = 0.2 * Math.PI;
+            endAngle = 1.8 * Math.PI;
+            break;
+          case "down":
+            startAngle = 0.7 * Math.PI;
+            endAngle = 0.3 * Math.PI;
+            break;
+          case "left":
+            startAngle = 1.2 * Math.PI;
+            endAngle = 0.8 * Math.PI;
+            break;
+          case "up":
+            startAngle = 1.7 * Math.PI;
+            endAngle = 1.3 * Math.PI;
+            break;
+        }
+
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.lineTo(centerX, centerY);
+        ctx.fillStyle = "yellow";
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      function drawMap() {
+        for (let y = 0; y < wallMap.length; y++) {
+          for (let x = 0; x < wallMap[y].length; x++) {
+            // Draw wall
+            if (wallMap[y][x] === 1) {
+              ctx.fillStyle = "blue";
+              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
+            // Draw food
+            else if (wallMap[y][x] === 2) {
+              ctx.fillStyle = "yellow";
+              ctx.fillRect(
+                x * cellSize + cellSize / 2,
+                y * cellSize + cellSize / 2,
+                dotSize,
+                dotSize
+              );
+            }
+            // Draw special food
+            else if (wallMap[y][x] === 3) {
+              ctx.fillStyle = "white";
+              ctx.fillRect(
+                x * cellSize + cellSize / 2,
+                y * cellSize + cellSize / 2,
+                dotSize * 2,
+                dotSize * 2
+              );
+            }
+          }
+        }
+      }
+
+      function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function update() {
+        clearCanvas();
+        drawMap();
+        drawPacman();
+      }
+
+      // TODO - Clean up the code
+      function movePacman() {
+        switch (pacman.direction) {
+          case "up":
+            if (pacman.y > 0 && wallMap[pacman.y - 1][pacman.x] != 1) {
+              pacman.y--;
+              if (wallMap[pacman.y][pacman.x] == 2) {
+                score += foodPts;
+                foodCount--;
+              } else if (wallMap[pacman.y][pacman.x] == 3) {
+                score += specialPts;
+                foodCount--;
+              }
+              wallMap[pacman.y][pacman.x] = 0;
+              scoreBoard.innerText = score;
+            }
+            break;
+          case "down":
+            if (
+              pacman.y < wallMap.length - 1 &&
+              wallMap[pacman.y + 1][pacman.x] != 1
+            ) {
+              pacman.y++;
+              if (wallMap[pacman.y][pacman.x] == 2) {
+                score += foodPts;
+                foodCount--;
+              } else if (wallMap[pacman.y][pacman.x] == 3) {
+                score += specialPts;
+                foodCount--;
+              }
+              wallMap[pacman.y][pacman.x] = 0;
+              scoreBoard.innerText = score;
+            }
+            break;
+          case "left":
+            if (pacman.x > 0 && wallMap[pacman.y][pacman.x - 1] != 1) {
+              pacman.x--;
+              if (wallMap[pacman.y][pacman.x] == 2) {
+                score += foodPts;
+                foodCount--;
+              } else if (wallMap[pacman.y][pacman.x] == 3) {
+                score += specialPts;
+                foodCount--;
+              }
+              wallMap[pacman.y][pacman.x] = 0;
+              scoreBoard.innerText = score;
+            }
+            break;
+          case "right":
+            if (
+              pacman.x < wallMap[0].length - 1 &&
+              wallMap[pacman.y][pacman.x + 1] != 1
+            ) {
+              pacman.x++;
+              if (wallMap[pacman.y][pacman.x] == 2) {
+                score += foodPts;
+                foodCount--;
+              } else if (wallMap[pacman.y][pacman.x] == 3) {
+                score += specialPts;
+                foodCount--;
+              }
+              wallMap[pacman.y][pacman.x] = 0;
+              scoreBoard.innerText = score;
+            }
+            break;
+        }
+      }
+
+      document.addEventListener("keydown", function (event) {
+        switch (event.key) {
+          case "ArrowUp":
+            pacman.direction = "up";
+            break;
+          case "ArrowDown":
+            pacman.direction = "down";
+            break;
+          case "ArrowLeft":
+            pacman.direction = "left";
+            break;
+          case "ArrowRight":
+            pacman.direction = "right";
+            break;
+        }
+      });
+
+      function calcFoodCount() {
+        for (let i = 0; i < wallMap.length; i++) {
+          for (let j = 0; j < wallMap[i].length; j++) {
+            if (wallMap[i][j] == 2 || wallMap[i][j] == 3) {
+              foodCount++;
+            }
+          }
+        }
+      }
+
+      function isGameOver() {
+        return foodCount <= 0;
+      }
+      let timeout;
+      function gameLoop() {
+        timeout = setTimeout(gameLoop, gameSpeedDelay); // Add a delay of 100 milliseconds between frames
+        movePacman();
+        update();
+        if (isGameOver()) {
+          clearTimeout(timeout);
+          gameOverScreen.style.display = "flex";
+        }
+      }
+      calcFoodCount();
+      gameLoop();
+    </script>
+  </body>
 </html>
