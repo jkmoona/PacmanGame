@@ -6,28 +6,24 @@
     <title>Pacman Game</title>
     <style>
       body {
-        display: grid;
-        justify-content: center;
-        align-items: center;
         background-color: black;
         color: white;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         overflow: hidden;
       }
 
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        margin: 10% 0;
+      }
+
       canvas {
         /* border: 1px solid #fff; */
-        margin: 50% auto;
         background-color: black;
       }
-
-      /* h3 {
-
-      }
-
-      #score {
-
-      } */
 
       #gameOverDiv {
         display: none;
@@ -42,17 +38,21 @@
     </style>
   </head>
   <body>
-    <h3>Score: <span id="score"></span></h3>
-    <canvas id="pacmanCanvas" width="400" height="400"></canvas>
-    <div id="gameOverDiv">Game Over</div>
+    <div class="container">
+      <h3>Score: <span id="score"></span></h3>
+      <canvas id="pacmanCanvas"></canvas>
+      <div id="gameOverDiv">Game Over</div>
+    </div>
     <script>
       const canvas = document.getElementById("pacmanCanvas");
       const ctx = canvas.getContext("2d");
       const scoreBoard = document.getElementById("score");
       const gameOverScreen = document.getElementById("gameOverDiv");
 
+      canvas.width = 285;
+      canvas.height = 285;
       const gameSpeedDelay = 300;
-      const cellSize = 30;
+      const cellSize = 40;
       const dotSize = cellSize / 10;
 
       let score = 0;
