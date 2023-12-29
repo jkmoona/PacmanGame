@@ -3,3 +3,6 @@
 
 
 Fully functional Pacman game.
+
+
+[Play](https://jkmoona.github.io/PacmanGame/)
