@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pacman Game</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap');
+
       body {
         background-color: black;
-        color: white;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         overflow: hidden;
+        font-family: "Pixelify Sans", sans-serif;
+        font-size: 10px;
+        color: white;
       }
 
       .container {
@@ -21,11 +24,10 @@
       }
 
       canvas {
-        /* border: 1px solid #fff; */
         background-color: black;
       }
 
-      #gameOverDiv {
+      #modal {
         display: none;
         justify-content: center;
         align-items: center;
@@ -33,21 +35,60 @@
         height: 100%;
         position: absolute;
         background-color: rgba(0, 0, 0, 0.75);
-        font-size: 28px;
+        font-size: 2.8rem;
+        text-align: center;
+        flex-direction: column;
+      }
+
+      table {
+        font-size: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      th, td {
+        padding: 0 1rem;
+      }
+
+      #restart-btn {
+        font-family: "Pixelify Sans", sans-serif;
+        font-size: 1.8rem;
+        background-color: black;
+        color: yellow;
+        padding: 1rem;
+        border-radius: 5px;
+        border-style: none;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h3>Score: <span id="score"></span></h3>
+      <table>
+        <thead>
+          <th>Lives</th>
+          <th>Score</th>
+        </thead>
+        <tr>
+          <td id="lives"></td>
+          <td id="score"></td>
+        </tr>
+      </table>
       <canvas id="pacmanCanvas"></canvas>
-      <div id="modal"></div>
+      <div id="modal">
+        Game Over
+        <span id="finalScore">Your score is </span>
+        <button id="restart-btn">Play Again</button>
+      </div>
     </div>
     <script>
       const canvas = document.getElementById("pacmanCanvas");
       const ctx = canvas.getContext("2d");
-      const scoreBoard = document.getElementById("score");
+      const livesCell = document.getElementById("lives");
+      const scoreCell = document.getElementById("score");
+      const finalScore = document.getElementById("finalScore");
       const gameOverScreen = document.getElementById("modal");
+      const restartButton = document.getElementById("restart-btn");
 
       canvas.width = 450;
       canvas.height = 450;
@@ -111,7 +152,7 @@
         }
 
         // TODO - Clean up the code 
-        eat() {
+        checkCollision() {
           switch(wallMap[pacman.y][pacman.x]){
             case 2:
               score += foodPts;
@@ -133,7 +174,7 @@
         ctx.beginPath();
         const centerX = (pacman.x + 0.5) * cellSize;
         const centerY = (pacman.y + 0.5) * cellSize;
-        const radius = cellSize / 2;
+        const radius = cellSize / 2 - 3;
 
         // Adjust the angles based on the direction
         let startAngle, endAngle;
@@ -175,20 +216,20 @@
             }
             // Draw food
             else if (wallMap[y][x] === 2) {
-              ctx.fillStyle = "yellow";
+              ctx.fillStyle = "white";
               ctx.fillRect(
-                x * cellSize + cellSize / 2,
-                y * cellSize + cellSize / 2,
+                x * cellSize + cellSize / 2 - foodSize / 4,
+                y * cellSize + cellSize / 2 - foodSize / 4,
                 foodSize,
                 foodSize
               );
             }
             // Draw special food
             else if (wallMap[y][x] === 3) {
-              ctx.fillStyle = "white";
+              ctx.fillStyle = "orange";
               ctx.fillRect(
-                x * cellSize + cellSize / 2,
-                y * cellSize + cellSize / 2,
+                x * cellSize + cellSize / 2 - specialSize / 4,
+                y * cellSize + cellSize / 2 - specialSize / 4,
                 specialSize,
                 specialSize
               );
@@ -205,11 +246,11 @@
         clearCanvas();
         drawMap();
         drawPacman();
-        pacman.eat();
-        scoreBoard.innerText = score;
+        pacman.checkCollision();
+        scoreCell.innerText = score;
+        livesCell.innerText = lives;
       }
 
-      // TODO - Clean up the code
       function movePacman() {
         switch (pacman.direction) {
           case "up":
@@ -272,8 +313,17 @@
         if(foodCount <= 0){
           clearTimeout(loop);
           gameOverScreen.style.display = "flex";
+          finalScore.innerText += ` ${score}`;
         }
       }
+
+      function restartGame() {
+        location.reload();
+      }
+
+      restartButton.addEventListener("click", () => {
+        restartGame();
+      });
       
       let timeout;
       function gameLoop() {
@@ -282,7 +332,9 @@
         update();
         gameOverCheck(timeout);
       }
+
       calcFoodCount();
+
       gameLoop();
     </script>
   </body>
