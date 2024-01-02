@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pacman Game</title>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap');
+      @import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap");
 
       body {
         background-color: black;
@@ -45,7 +45,8 @@
         margin-bottom: 2rem;
       }
 
-      th, td {
+      th,
+      td {
         padding: 0 1rem;
       }
 
@@ -94,7 +95,7 @@
       const cellSize = 40;
       const foodSize = cellSize / 10;
       const specialSize = foodSize * 2;
-      
+
       const gameSpeedDelay = 300;
       let lives = 3;
       let score = 0;
@@ -143,16 +144,16 @@
       ];
 
       class Pacman {
-        constructor(x,y,direction, lives){
+        constructor(x, y, direction, lives) {
           this.x = x;
           this.y = y;
           this.direction = direction;
           this.lives = lives;
         }
 
-        // TODO - Clean up the code 
+        // TODO - Clean up the code
         checkCollision() {
-          switch(wallMap[pacman.y][pacman.x]){
+          switch (wallMap[pacman.y][pacman.x]) {
             case 2:
               score += foodPts;
               foodCount--;
@@ -165,9 +166,96 @@
               break;
           }
         }
-      };
+      }
 
       const pacman = new Pacman(1, 1, "right", lives);
+
+      class Ghost {
+        constructor(x, y, color) {
+          this.x = x;
+          this.y = y;
+          this.color = color;
+          this.direction = getRandomDirection();
+        }
+
+        move() {
+          const randomMove = Math.floor(Math.random() * 4);
+
+          switch (randomMove) {
+            case 0:
+              if (this.y > 0 && wallMap[this.y - 1][this.x] !== 1) {
+                this.y--;
+              }
+              break;
+            case 1:
+              if (
+                this.y < wallMap.length - 1 &&
+                wallMap[this.y + 1][this.x] !== 1
+              ) {
+                this.y++;
+              }
+              break;
+            case 2:
+              if (this.x > 0 && wallMap[this.y][this.x - 1] !== 1) {
+                this.x--;
+              }
+              break;
+            case 3:
+              if (
+                this.x < wallMap[0].length - 1 &&
+                wallMap[this.y][this.x + 1] !== 1
+              ) {
+                this.x++;
+              }
+              break;
+          }
+        }
+
+        draw() {
+          const ghostSize = 15;
+
+          const ghostX = (this.x + 0.5) * cellSize;
+          const ghostY = (this.y + 0.5) * cellSize;
+
+          ctx.beginPath();
+          ctx.arc(ghostX, ghostY, ghostSize, 0, 2 * Math.PI);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+          ctx.closePath();
+        }
+      }
+
+      const ghosts = [new Ghost(9, 9, "red"), new Ghost(9, 9, "blue")];
+
+      function getRandomDirection() {
+        const directions = ["up", "down", "left", "right"];
+        return directions[Math.floor(Math.random() * 4)];
+      }
+
+      function updateGhosts() {
+        ghosts.forEach((ghost) => {
+          ghost.move();
+          ghost.draw();
+        });
+      }
+
+      function checkPacmanGhostCollision() {
+        ghosts.forEach((ghost) => {
+          if (pacman.x === ghost.x && pacman.y === ghost.y) {
+            handlePacmanGhostCollision(ghost);
+          }
+        });
+      }
+
+      function handlePacmanGhostCollision(ghost) {
+        lives--;
+        resetPacmanPosition();
+      }
+
+      function resetPacmanPosition() {
+        pacman.x = 1;
+        pacman.y = 1;
+      }
 
       function drawPacman() {
         ctx.beginPath();
@@ -245,7 +333,9 @@
         clearCanvas();
         drawMap();
         drawPacman();
+        updateGhosts();
         pacman.checkCollision();
+        checkPacmanGhostCollision();
         scoreCell.innerText = score;
         livesCell.innerText = lives;
       }
@@ -309,7 +399,7 @@
       }
 
       function gameOverCheck(loop) {
-        if(foodCount <= 0){
+        if (foodCount <= 0 || lives == 0) {
           clearTimeout(loop);
           gameOverScreen.style.display = "flex";
           finalScore.innerText += ` ${score}`;
@@ -323,7 +413,7 @@
       restartButton.addEventListener("click", () => {
         restartGame();
       });
-      
+
       let timeout;
       function gameLoop() {
         timeout = setTimeout(gameLoop, gameSpeedDelay); // Add a delay between frames
