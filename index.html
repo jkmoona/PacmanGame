@@ -26,7 +26,7 @@
         background-color: black;
       }
 
-      #modal {
+      .modal {
         display: none;
         justify-content: center;
         align-items: center;
@@ -49,8 +49,13 @@
       td {
         padding: 0 1rem;
       }
+      
+      #play-btn {
+        font-size: 3.6rem;
+        padding-right: 5px;
+      }
 
-      #restart-btn {
+      .modal-btn {
         font-family: "Pixelify Sans", sans-serif;
         font-size: 1.8rem;
         background-color: black;
@@ -59,6 +64,17 @@
         border-radius: 5px;
         border-style: none;
         cursor: pointer;
+      }
+      
+      #agent-controlled-check {
+        margin-top: 7px;
+        margin-right: 10px;
+      }
+
+      .center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
     </style>
   </head>
@@ -75,10 +91,17 @@
         </tr>
       </table>
       <canvas id="pacmanCanvas"></canvas>
-      <div id="modal">
+      <div id="game-start-modal" class="modal center">
+        <button id="play-btn" class="modal-btn">PLAY</button>
+        <div class="center">
+          <input type="checkbox" name="agent-controlled-check" id="agent-controlled-check">
+          <label for="agent-controlled-check">AI</label>
+        </div>
+      </div>
+      <div id="game-over-modal" class="modal">
         Game Over
-        <span id="finalScore">Your score is </span>
-        <button id="restart-btn">Play Again</button>
+        <span id="final-score">Your score is </span>
+        <button id="restart-btn" class="modal-btn">Play Again</button>
       </div>
     </div>
     <script>
@@ -86,9 +109,12 @@
       const ctx = canvas.getContext("2d");
       const livesCell = document.getElementById("lives");
       const scoreCell = document.getElementById("score");
-      const finalScore = document.getElementById("finalScore");
-      const gameOverScreen = document.getElementById("modal");
+      const finalScore = document.getElementById("final-score");
+      const gameOverScreen = document.getElementById("game-over-modal");
+      const gameStartScreen = document.getElementById("game-start-modal");
       const restartButton = document.getElementById("restart-btn");
+      const playButton = document.getElementById("play-btn");
+      const agentCheckBox = document.getElementById("agent-controlled-check");
 
       canvas.width = 450;
       canvas.height = 450;
@@ -96,12 +122,16 @@
       const foodSize = cellSize / 10;
       const specialSize = foodSize * 2;
 
+      let isAgentControlled = true;
+      let pacmanMoveRandom = false;
+
       const gameSpeedDelay = 300;
       let lives = 3;
       let score = 0;
       let foodCount = 0;
       const foodPts = 1;
       const specialPts = 10;
+      const ghostEatPts = 20;
 
       // 1 - wall, 2 - food, 3 - special
       const wallMap = [
@@ -129,20 +159,6 @@
         [1, 1, 1, 1, 1, 1, 1],
       ];
 
-      const ghostMap = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      ];
-
       class Pacman {
         constructor(x, y, direction, lives) {
           this.x = x;
@@ -163,6 +179,7 @@
               score += specialPts;
               foodCount--;
               wallMap[pacman.y][pacman.x] = 0;
+              makeGhostsEdible();
               break;
           }
         }
@@ -176,6 +193,7 @@
           this.y = y;
           this.color = color;
           this.direction = getRandomDirection();
+          this.edible = false;
         }
 
         move() {
@@ -219,7 +237,7 @@
 
           ctx.beginPath();
           ctx.arc(ghostX, ghostY, ghostSize, 0, 2 * Math.PI);
-          ctx.fillStyle = this.color;
+          ctx.fillStyle = this.edible ? "pink" : this.color;
           ctx.fill();
           ctx.closePath();
         }
@@ -230,6 +248,17 @@
       function getRandomDirection() {
         const directions = ["up", "down", "left", "right"];
         return directions[Math.floor(Math.random() * 4)];
+      }
+
+      function makeGhostsEdible() {
+        ghosts.forEach((ghost) => {
+          ghost.edible = true;
+        });
+        setTimeout(() => {
+          ghosts.forEach((ghost) => {
+            ghost.edible = false;
+          });
+        }, 6000); // 6 sec
       }
 
       function updateGhosts() {
@@ -248,13 +277,24 @@
       }
 
       function handlePacmanGhostCollision(ghost) {
-        lives--;
-        resetPacmanPosition();
+        if (ghost.edible) {
+          // Pacman "eats" the ghost, gain points, and reset ghost position
+          score += ghostEatPts;
+          resetGhostPosition(ghost);
+        } else {
+          lives--;
+          resetPacmanPosition();
+        }
       }
 
       function resetPacmanPosition() {
         pacman.x = 1;
         pacman.y = 1;
+      }
+
+      function resetGhostPosition(ghost) {
+        ghost.x = 1;
+        ghost.y = 1;
       }
 
       function drawPacman() {
@@ -414,17 +454,95 @@
         restartGame();
       });
 
+      // AI PART
+
+      function autonomousMovePacman() {
+        const x = pacman.x;
+        const y = pacman.y;
+
+        const foodPositions = findFoodPositions();
+
+        if (foodPositions.length > 0) {
+          const nearestFood = findNearestFood(foodPositions);
+          const dx = nearestFood.x - x;
+          const dy = nearestFood.y - y;
+
+          if (Math.abs(dx) > Math.abs(dy)) {
+            pacman.direction = dx > 0 ? "right" : "left";
+          } else {
+            pacman.direction = dy > 0 ? "down" : "up";
+          }
+
+          movePacman();
+
+          if (pacman.x === x && pacman.y === y) {
+            handleStuck();
+            movePacman();
+          }
+        }
+      }
+
+      // Could be solved better
+      function handleStuck() {
+        pacman.direction = getRandomDirection();
+      }
+
+      function findFoodPositions() {
+        const foodPositions = [];
+
+        for (let row = 0; row < wallMap.length; row++) {
+          for (let col = 0; col < wallMap[0].length; col++) {
+            if (wallMap[row][col] === 2 || wallMap[row][col] === 3) {
+              foodPositions.push({ x: col, y: row });
+            }
+          }
+        }
+
+        return foodPositions;
+      }
+
+      function findNearestFood(foodPositions) {
+        let minDistance = Infinity;
+        let nearestFood = null;
+
+        for (const food of foodPositions) {
+          const distance = calculateDistance(pacman, food);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestFood = food;
+          }
+        }
+
+        return nearestFood;
+      }
+
+      function calculateDistance(pos1, pos2) {
+        const dx = pos1.x - pos2.x;
+        const dy = pos1.y - pos2.y;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
       let timeout;
       function gameLoop() {
         timeout = setTimeout(gameLoop, gameSpeedDelay); // Add a delay between frames
-        movePacman();
+
+        if (isAgentControlled) {
+          autonomousMovePacman(); // AI controls Pacman's movement
+        } else {
+          movePacman();
+        }
+
         update();
         gameOverCheck(timeout);
       }
 
       calcFoodCount();
 
-      gameLoop();
+      playButton.addEventListener("click", () => {
+        isAgentControlled = agentCheckBox.checked;
+        gameLoop();
+        gameStartScreen.style.display = "none";
+      })
     </script>
   </body>
 </html>
